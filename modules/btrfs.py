@@ -113,14 +113,9 @@ class BtrfsModule(HealthCheckModule):
             details.append(f"scrub errors: {total_errors}")
             for error_type, count in sorted(error_counts.items()):
                 if count > 0:
-                    details.append(f"  {error_type}: {count}")
+                    details.append(f" - {error_type}: {count}")
         else:
             details.append("unable to parse scrub output")
-
-        # Add remaining output lines for context
-        for ln in lines[-self.max_tooltip_lines:]:
-            if not re.search(r"(\w+_errors?):\s*(\d+)", ln):
-                details.append(f"  {ln}")
 
         return HealthCheckResult(
             status=status,

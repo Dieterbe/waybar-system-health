@@ -9,6 +9,7 @@ from modules.systemd import SystemdModule
 from modules.journal import JournalModule
 from modules.btrfs import BtrfsModule
 from modules.disk import DiskModule, load_mount_thresholds
+from modules.smart import SmartModule
 from modules.base import Status, HealthCheckResult
 
 def get_config_dir() -> Path:
@@ -24,7 +25,7 @@ def main() -> None:
             "WAYBAR_SYSTEM_HEALTH_IGNORE",
             str(get_config_dir() / "waybar-system-health" / "ignore")
         ),
-        ["unit", "journal", "btrfs", "disk"]
+        ["unit", "journal", "btrfs", "disk", "smart"]
     )
 
     disk_config_path = os.environ.get(
@@ -47,6 +48,7 @@ def main() -> None:
             ignore_rules=ignore_rules.get("disk"),
             config_error=disk_config_error,
         ),
+        "SMART": SmartModule(ignore_rules=ignore_rules.get("smart")),
     }
     results = {name: m.check() for name, m in modules.items()}
 
