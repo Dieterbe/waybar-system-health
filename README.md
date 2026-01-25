@@ -108,6 +108,11 @@ Graphs are configured via a JSON file at `$XDG_CONFIG_HOME/waybar-system-health/
 ```
 Each graph directory is recursively scanned for files whose name contains `sync-conflict`. Any matches raise the status to CRITICAL and the tooltip lists the relative paths. When no graphs are configured the module returns a warning reminding you to add them.
 
+## Btrfs module
+
+You need a sudoers rule to allow your user (or group) passwordless access to getting stats from the last scrub.
+E.g. something like this `%wheel ALL=(ALL) NOPASSWD: /usr/bin/btrfs scrub status -R /`
+
 ## Waybar configuration
 Something like...
 ```

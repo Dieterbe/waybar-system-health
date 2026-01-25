@@ -75,7 +75,7 @@ class BtrfsModule(HealthCheckModule):
 
     def scrub_status(self) -> HealthCheckResult:
         """Get btrfs scrub status."""
-        code, out, err = run(["btrfs", "scrub", "status", "-R", "/"])
+        code, out, err = run(["sudo", "btrfs", "scrub", "status", "-R", "/"])
         if code == 127:
             return HealthCheckResult(
                 status=Status.WARN,
