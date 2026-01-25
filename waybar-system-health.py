@@ -10,6 +10,7 @@ from modules.journal import JournalModule
 from modules.btrfs import BtrfsModule
 from modules.disk import DiskModule, load_mount_thresholds
 from modules.smart import SmartModule
+from modules.logseq import LogseqModule, load_logseq_graphs
 from modules.base import Status, HealthCheckResult
 
 def get_config_dir() -> Path:
@@ -25,7 +26,7 @@ def main() -> None:
             "WAYBAR_SYSTEM_HEALTH_IGNORE",
             str(get_config_dir() / "waybar-system-health" / "ignore")
         ),
-        ["unit", "journal", "btrfs", "disk", "smart"]
+        ["unit", "journal", "btrfs", "disk", "smart", "logseq"]
     )
 
     disk_config_path = os.environ.get(
@@ -39,6 +40,14 @@ def main() -> None:
     except ValueError as exc:
         disk_config_error = str(exc)
 
+    logseq_config_path = str(get_config_dir() / "waybar-system-health" / "logseq.json")
+    logseq_graphs = []
+    logseq_config_error = None
+    try:
+        logseq_graphs = load_logseq_graphs(logseq_config_path)
+    except ValueError as exc:
+        logseq_config_error = str(exc)
+
     modules = {
         "Units": SystemdModule(ignore_rules=ignore_rules.get("unit")),
         "Journal": JournalModule(ignore_rules=ignore_rules.get("journal")),
@@ -49,6 +58,11 @@ def main() -> None:
             config_error=disk_config_error,
         ),
         "SMART": SmartModule(ignore_rules=ignore_rules.get("smart")),
+        "Logseq": LogseqModule(
+            graph_roots=logseq_graphs,
+            ignore_rules=ignore_rules.get("logseq"),
+            config_error=logseq_config_error,
+        ),
     }
     results = {name: m.check() for name, m in modules.items()}
 

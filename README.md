@@ -14,6 +14,7 @@ Script for waybar to detect problems with your Linux system.
 - systemd: overall status and unit failures
 - journal: errors
 - SMART: device health summaries via `smartctl --scan-open` and `smartctl -a`
+- Logseq: sync-conflict detection across configured graphs (when using syncthing)
 
 ## More things to add in the future
 - old pacnew/pacsave files
@@ -90,6 +91,22 @@ Mountpoints and thresholds are configured via a JSON file at `$XDG_CONFIG_HOME/w
 ]
 ```
 Values are percentages of used space; `warn` cannot exceed `critical`. When the config is missing an entry, the Disk module will emit a warning reminding you to configure it.
+
+## Logseq configuration
+
+Detects sync-conflicts (when using syncthing) in configured Logseq graphs.
+
+Graphs are configured via a JSON file at `$XDG_CONFIG_HOME/waybar-system-health/logseq.json`. The file contains a list of either string paths or objects with `path` and optional `label` fields:
+```
+[
+  "~/Documents/logseq",
+  {
+    "path": "/mnt/vault/logseq",
+    "label": "Work graph"
+  }
+]
+```
+Each graph directory is recursively scanned for files whose name contains `sync-conflict`. Any matches raise the status to CRITICAL and the tooltip lists the relative paths. When no graphs are configured the module returns a warning reminding you to add them.
 
 ## Waybar configuration
 Something like...
