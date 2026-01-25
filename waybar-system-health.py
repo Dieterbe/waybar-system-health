@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import json
 import os
 from pathlib import Path
@@ -13,6 +14,23 @@ from modules.smart import SmartModule
 from modules.logseq import LogseqModule, load_logseq_graphs
 from modules.base import Status, HealthCheckResult
 
+
+STATUS_ICONS = {
+    Status.OK: "✓",
+    Status.WARN: "",
+    Status.CRITICAL: "",
+}
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Waybar system health reporter")
+    parser.add_argument(
+        "--format",
+        choices=["waybar", "hyprpanel"],
+        default="waybar",
+        help="Selects the status JSON schema.",
+    )
+    return parser.parse_args()
+
 def get_config_dir() -> Path:
     """Get the config directory following XDG Base Directory spec."""
     xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
@@ -21,6 +39,7 @@ def get_config_dir() -> Path:
     return Path.home() / ".config"
 
 def main() -> None:
+    args = parse_args()
     ignore_rules = parse_ignore_file(
         os.environ.get(
             "WAYBAR_SYSTEM_HEALTH_IGNORE",
@@ -65,19 +84,46 @@ def main() -> None:
         ),
     }
     results = {name: m.check() for name, m in modules.items()}
-
     merged = HealthCheckResult.merge({f"# {name}": result for name, result in results.items()})
 
-    if merged.status == Status.OK:
-        text = "✓"
+    if args.format == "hyprpanel":
+        print(json.dumps(json_hyprpanel(results, merged)))
     else:
-        non_ok_statuses = [f"{name}:{result.status.value}" for name, result in results.items() if result.status != Status.OK]
-        text = f"⚠ {' '.join(non_ok_statuses)}"
+        print(json.dumps(json_waybar(results, merged)))
+
+def json_hyprpanel(results: Dict[str, HealthCheckResult], merged: HealthCheckResult) -> str:
+    text = STATUS_ICONS[Status.OK]
+    if merged.status != Status.OK:
+        text = " ".join([
+            f"{STATUS_ICONS.get(result.status, result.status.value)}  {name}"
+            for name, result in results.items()
+            if result.status != Status.OK
+        ])
 
     tooltip = "\n".join(merged.tooltipLines)
+    return {
+        "icon": STATUS_ICONS[merged.status],
+        "label": text,
+        "tooltip": tooltip,
+        "class": merged.status.value,
+    }    
 
-    payload = {"text": text, "tooltip": tooltip, "class": merged.status.value}
-    print(json.dumps(payload))
+def json_waybar(results: Dict[str, HealthCheckResult], merged: HealthCheckResult):
+    text = STATUS_ICONS[Status.OK]
+    if merged.status != Status.OK:
+        text = " ".join([
+            f"{name}:{STATUS_ICONS.get(result.status, result.status.value)}"
+            for name, result in results.items()
+            if result.status != Status.OK
+        ])
+
+    tooltip = "\n".join(merged.tooltipLines)
+    return {
+        "text": text,
+        "tooltip": tooltip, 
+        "class": merged.status.value, 
+        "percentage": 100 if merged.status == Status.OK else 0
+    }
 
 if __name__ == "__main__":
     main()

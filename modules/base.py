@@ -35,16 +35,16 @@ class HealthCheckResult:
         Returns:
             A merged HealthCheckResult with the worst status and combined tooltip lines
         """
-        merged_lines = []
+        tooltipLines = []
         for name, result in results.items():
-            if merged_lines:
-                merged_lines.append("")
-            merged_lines.append(f"{name}:")
-            merged_lines.extend(result.tooltipLines)
+            if tooltipLines:
+                tooltipLines.append("")
+            tooltipLines.append(f"{name}:")
+            tooltipLines.extend(result.tooltipLines)
         
         return HealthCheckResult(
             status=Status.worst([r.status for r in results.values()]),
-            tooltipLines=merged_lines,
+            tooltipLines=tooltipLines,
         )
 
 class HealthCheckModule(ABC):

@@ -1,6 +1,6 @@
 # waybar-system-health
 
-Script for waybar to detect problems with your Linux system.
+Script for waybar or Hyprpanel to detect problems with your Linux system.
 
 * If all is well, takes up only a single character: `✓`.
 * If there are problems, tells you concisely, with all the details in the tooltip.
@@ -138,3 +138,13 @@ And the css:
     font-weight: bolder;
 }
 ```
+
+## Output formats
+
+The script can emit JSON tailored to either Waybar or Hyprpanel. Waybar output is the default and mirrors the behavior shown above. To switch to Hyprpanel-compatible payloads run the script with:
+
+```
+waybar-system-health.py --format hyprpanel
+```
+
+Set `--format waybar` (or omit the flag) to keep the original behavior.
