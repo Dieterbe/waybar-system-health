@@ -2,6 +2,7 @@ import re
 from typing import List, Optional, Tuple
 from .base import HealthCheckModule, IgnoreRules, Status, HealthCheckResult
 from .utils import run, format_command_error
+from .ux import format_status_line
 
 
 class BtrfsModule(HealthCheckModule):
@@ -27,7 +28,7 @@ class BtrfsModule(HealthCheckModule):
         if code == 127:
             return HealthCheckResult(
                 status=Status.WARN,
-                tooltipLines=["btrfs-progs missing"],
+                tooltipLines=[format_status_line(Status.WARN, "btrfs-progs missing")],
             )
         if code != 0:
             return HealthCheckResult(
@@ -62,11 +63,9 @@ class BtrfsModule(HealthCheckModule):
         else:
             status = Status.OK
 
-        details = [f"non-zero counters: {nonzero}"]
+        details = [format_status_line(status, f"non-zero counters: {nonzero}")]
         for ln in interesting[:self.max_tooltip_lines]:
             details.append(f"  {ln}")
-        if nonzero == 0:
-            details.append("  (none)")
 
         return HealthCheckResult(
             status=status,
@@ -108,14 +107,11 @@ class BtrfsModule(HealthCheckModule):
         else:
             status = Status.OK
 
-        details = []
+        details = [format_status_line(status, f"scrub errors: {total_errors}" if error_counts else "unable to parse scrub output")]
         if error_counts:
-            details.append(f"scrub errors: {total_errors}")
             for error_type, count in sorted(error_counts.items()):
                 if count > 0:
                     details.append(f" - {error_type}: {count}")
-        else:
-            details.append("unable to parse scrub output")
 
         return HealthCheckResult(
             status=status,
@@ -129,7 +125,7 @@ class BtrfsModule(HealthCheckModule):
         if fstype != "btrfs":
             return HealthCheckResult(
                 status=Status.WARN,
-                tooltipLines=[f"(root is '{fstype}', not btrfs. check your config)"],
+                tooltipLines=[format_status_line(Status.WARN, f"(root is '{fstype}', not btrfs. check your config)")],
             )
 
         results = {

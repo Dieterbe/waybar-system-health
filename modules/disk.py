@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from .base import HealthCheckModule, HealthCheckResult, IgnoreRules, Status
+from .ux import format_status_line
 
 
 @dataclass(frozen=True)
@@ -85,7 +86,7 @@ class DiskModule(HealthCheckModule):
             return HealthCheckResult(
                 status=Status.WARN,
                 tooltipLines=[
-                    "Disk usage: invalid configuration",
+                    format_status_line(Status.WARN, "Disk usage: invalid configuration"),
                     f"  {self.config_error}",
                 ],
             )
@@ -94,7 +95,7 @@ class DiskModule(HealthCheckModule):
             return HealthCheckResult(
                 status=Status.WARN,
                 tooltipLines=[
-                    "Disk usage: no mountpoints configured",
+                    format_status_line(Status.WARN, "Disk usage: no mountpoints configured"),
                     "Configure mounts in disk.json (see README)",
                 ],
             )
@@ -107,21 +108,21 @@ class DiskModule(HealthCheckModule):
                 usage = shutil.disk_usage(cfg.path)
             except FileNotFoundError:
                 mount_statuses.append(Status.WARN)
-                lines.append(f"{cfg.path}: not found (warn)")
+                lines.append(format_status_line(Status.WARN, f"{cfg.path}: not found (warn)"))
                 continue
             except PermissionError:
                 mount_statuses.append(Status.WARN)
-                lines.append(f"{cfg.path}: permission denied")
+                lines.append(format_status_line(Status.WARN, f"{cfg.path}: permission denied"))
                 continue
             except OSError as exc:
                 mount_statuses.append(Status.WARN)
-                lines.append(f"{cfg.path}: error reading usage ({exc})")
+                lines.append(format_status_line(Status.WARN, f"{cfg.path}: error reading usage ({exc})"))
                 continue
 
             total = usage.total
             if total <= 0:
                 mount_statuses.append(Status.WARN)
-                lines.append(f"{cfg.path}: unable to determine size")
+                lines.append(format_status_line(Status.WARN, f"{cfg.path}: unable to determine size"))
                 continue
 
             used_percent = ((usage.total - usage.free) / usage.total) * 100
@@ -137,14 +138,14 @@ class DiskModule(HealthCheckModule):
 
             free_gib = usage.free / (1024 ** 3)
             total_gib = usage.total / (1024 ** 3)
-            marker = {
-                Status.OK: "✓",
-                Status.WARN: "!",
-                Status.CRITICAL: "✗",
-            }[status]
             lines.append(
-                f"[{marker}] {cfg.path}: {used_percent:.1f}% used ({free_gib:.1f}/{total_gib:.1f} GiB free) "
-                f"(warn {cfg.warn_percent:.1f}%, crit {cfg.critical_percent:.1f}%)"
+                format_status_line(
+                    status,
+                    (
+                        f"{cfg.path}: {used_percent:.1f}% used ({free_gib:.1f}/{total_gib:.1f} GiB free) "
+                        f"(warn {cfg.warn_percent:.1f}%, crit {cfg.critical_percent:.1f}%)"
+                    ),
+                )
             )
 
         overall_status = Status.worst(mount_statuses)

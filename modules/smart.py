@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple
 
 from .base import HealthCheckModule, HealthCheckResult, IgnoreRules, Status
 from .utils import format_command_error, run
+from .ux import format_status_line
 
 
 @dataclass(frozen=True)
@@ -63,7 +64,7 @@ class SmartModule(HealthCheckModule):
             return HealthCheckResult(
                 status=Status.WARN,
                 tooltipLines=[
-                    "SMART: smartctl command not found",
+                    format_status_line(Status.WARN, "SMART: smartctl command not found"),
                     "Install smartmontools to enable SMART health checks.",
                 ],
             )
@@ -71,7 +72,7 @@ class SmartModule(HealthCheckModule):
         devices = [dev for dev in parse_scan_output(scan_out) if not self.is_ignored(dev.path)]
 
         if not devices:
-            lines = ["SMART: no devices detected via 'smartctl --scan-open'"]
+            lines = [format_status_line(Status.WARN, "SMART: no devices detected via 'smartctl --scan-open'")]
             err_line = (scan_err.strip().splitlines() or [""])[0]
             if err_line:
                 lines.append(f"  {err_line}")
@@ -99,17 +100,11 @@ class SmartModule(HealthCheckModule):
         status = self._status_from_exit_and_health(exit_messages, health_line)
         summary = self._summarize_health(health_line, status)
 
-        marker = {Status.OK: "✓", Status.WARN: "!", Status.CRITICAL: "✗"}[status]
-        lines = [f"[{marker}] {device.path}: {summary}"]
+        lines = [format_status_line(status, f"{device.path}: {summary}")]
 
         if exit_messages:
             for msg_status, msg in exit_messages:
-                prefix = {
-                    Status.OK: "info",
-                    Status.WARN: "warn",
-                    Status.CRITICAL: "crit",
-                }[msg_status]
-                lines.append(f"  - ({prefix}) {msg}")
+                lines.append(f"  - {format_status_line(msg_status, msg)}")
 
         if code != 0 and not exit_messages and (err.strip() or not out.strip()):
             lines.extend(format_command_error("sudo smartctl -a", code, out, err))

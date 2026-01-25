@@ -3,7 +3,7 @@ import argparse
 import json
 import os
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict
 
 from modules.utils import parse_ignore_file
 from modules.systemd import SystemdModule
@@ -13,13 +13,7 @@ from modules.disk import DiskModule, load_mount_thresholds
 from modules.smart import SmartModule
 from modules.logseq import LogseqModule, load_logseq_graphs
 from modules.base import Status, HealthCheckResult
-
-
-STATUS_ICONS = {
-    Status.OK: "✓",
-    Status.WARN: "",
-    Status.CRITICAL: "",
-}
+from modules.ux import format_status_line, status_icon
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Waybar system health reporter")
@@ -92,30 +86,30 @@ def main() -> None:
         print(json.dumps(json_waybar(results, merged)))
 
 def json_hyprpanel(results: Dict[str, HealthCheckResult], merged: HealthCheckResult) -> str:
-    text = STATUS_ICONS[Status.OK]
+    label = status_icon(Status.OK)
     if merged.status != Status.OK:
-        text = " ".join([
-            f"{STATUS_ICONS.get(result.status, result.status.value)}  {name}"
+        label = " ".join(
+            format_status_line(result.status, name)
             for name, result in results.items()
             if result.status != Status.OK
-        ])
+        )
 
     tooltip = "\n".join(merged.tooltipLines)
     return {
-        "icon": STATUS_ICONS[merged.status],
-        "label": text,
+        "icon": status_icon(merged.status),
+        "label": label,
         "tooltip": tooltip,
         "class": merged.status.value,
     }    
 
 def json_waybar(results: Dict[str, HealthCheckResult], merged: HealthCheckResult):
-    text = STATUS_ICONS[Status.OK]
+    text = status_icon(Status.OK)
     if merged.status != Status.OK:
-        text = " ".join([
-            f"{name}:{STATUS_ICONS.get(result.status, result.status.value)}"
+        text = " ".join(
+            f"{name}:{status_icon(result.status)}"
             for name, result in results.items()
             if result.status != Status.OK
-        ])
+        )
 
     tooltip = "\n".join(merged.tooltipLines)
     return {

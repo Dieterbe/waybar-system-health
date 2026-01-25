@@ -1,6 +1,7 @@
 from typing import List, Optional
 from .base import HealthCheckModule, IgnoreRules, Status, HealthCheckResult
 from .utils import run, format_command_error
+from .ux import format_status_line
 
 
 class SystemdModule(HealthCheckModule):
@@ -33,9 +34,10 @@ class SystemdModule(HealthCheckModule):
         else:
             status = Status.OK
 
+        message = f"systemd{label}: {state}"
         return HealthCheckResult(
             status=status,
-            tooltipLines=[f"systemd ({label}): {state}"],
+            tooltipLines=[format_status_line(status, message)],
         )
 
     def _failed_units_result(self, user: bool) -> HealthCheckResult:
@@ -50,7 +52,7 @@ class SystemdModule(HealthCheckModule):
         if code == 127:
             return HealthCheckResult(
                 status=Status.WARN,
-                tooltipLines=[f"systemctl missing"],
+                tooltipLines=[format_status_line(Status.WARN, "systemctl missing")],
             )
         if code != 0:
             return HealthCheckResult(
@@ -68,14 +70,14 @@ class SystemdModule(HealthCheckModule):
                 units.append(unit)
 
         if units:
-            lines = [f"Failed units:"]
+            lines = [format_status_line(Status.CRITICAL, "Failed units:")]
             for u in units[:self.max_tooltip_units]:
                 lines.append(f"  • {u}")
             if len(units) > self.max_tooltip_units:
                 lines.append(f"  … (+{len(units) - self.max_tooltip_units} more)")
             status = Status.CRITICAL
         else:
-            lines = ["Failed units: none"]
+            lines = [format_status_line(Status.OK, "Failed units: none")]
             status = Status.OK
 
         return HealthCheckResult(status=status, tooltipLines=lines)

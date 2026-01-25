@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 from .base import HealthCheckModule, HealthCheckResult, IgnoreRules, Status
+from .ux import format_status_line
 
 
 @dataclass(frozen=True)
@@ -77,7 +78,7 @@ class LogseqModule(HealthCheckModule):
             return HealthCheckResult(
                 status=Status.WARN,
                 tooltipLines=[
-                    "Logseq: invalid configuration",
+                    format_status_line(Status.WARN, "Logseq: invalid configuration"),
                     f"  {self.config_error}",
                 ],
             )
@@ -86,7 +87,7 @@ class LogseqModule(HealthCheckModule):
             return HealthCheckResult(
                 status=Status.WARN,
                 tooltipLines=[
-                    "Logseq: no graphs configured",
+                    format_status_line(Status.WARN, "Logseq: no graphs configured"),
                     "Add paths in logseq.json (see README)",
                 ],
             )
@@ -98,23 +99,23 @@ class LogseqModule(HealthCheckModule):
             label = cfg.display_name()
             if not cfg.path.exists():
                 statuses.append(Status.WARN)
-                lines.append(f"{label}: path does not exist")
+                lines.append(format_status_line(Status.WARN, f"{label}: path does not exist"))
                 continue
             if not cfg.path.is_dir():
                 statuses.append(Status.WARN)
-                lines.append(f"{label}: path is not a directory")
+                lines.append(format_status_line(Status.WARN, f"{label}: path is not a directory"))
                 continue
 
             conflicts, error = self._find_conflicts(cfg.path)
             if error:
                 statuses.append(Status.WARN)
-                lines.append(f"{label}: error scanning graph")
+                lines.append(format_status_line(Status.WARN, f"{label}: error scanning graph"))
                 lines.append(f"  {error}")
                 continue
 
             if conflicts:
                 statuses.append(Status.CRITICAL)
-                lines.append(f"{label}: sync conflicts detected ({len(conflicts)})")
+                lines.append(format_status_line(Status.CRITICAL, f"{label}: sync conflicts detected ({len(conflicts)})"))
                 for conflict in conflicts[: self.max_conflict_lines]:
                     lines.append(f"  - {self._format_conflict(cfg.path, conflict)}")
                 if len(conflicts) > self.max_conflict_lines:
@@ -123,7 +124,7 @@ class LogseqModule(HealthCheckModule):
                     )
             else:
                 statuses.append(Status.OK)
-                lines.append(f"{label}: no sync conflicts")
+                lines.append(format_status_line(Status.OK, f"{label}: no sync conflicts"))
 
         overall = Status.worst(statuses)
         return HealthCheckResult(status=overall, tooltipLines=lines)

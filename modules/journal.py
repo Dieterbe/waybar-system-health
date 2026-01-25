@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple
 from .base import HealthCheckModule, IgnoreRules, Status, HealthCheckResult
 from .utils import run
+from .ux import format_status_line
 
 
 class JournalModule(HealthCheckModule):
@@ -17,13 +18,18 @@ class JournalModule(HealthCheckModule):
         if code == 127:
             return HealthCheckResult(
                 status=Status.WARN,
-                tooltipLines=["journalctl missing"],
+                tooltipLines=[format_status_line(Status.WARN, "journalctl missing")],
             )
         if code != 0 and not out.strip():
             note = (err.strip() or "cannot read journal").splitlines()[0] # TODO don't just use the first line only
             return HealthCheckResult(
                 status=Status.WARN,
-                tooltipLines=["Journal errors (err..emerg): (not readable)", f"  {note}", "", "Tip: add user to systemd-journal group, then re-login."],
+                tooltipLines=[
+                    format_status_line(Status.WARN, "Journal errors (err..emerg): (not readable)"),
+                    f"  {note}",
+                    "",
+                    "Tip: add user to systemd-journal group, then re-login.",
+                ],
             )
 
         lines_all = [ln for ln in out.splitlines() if ln.strip()]
@@ -35,11 +41,11 @@ class JournalModule(HealthCheckModule):
         if count == 0:
             return HealthCheckResult(
                 status=Status.OK,
-                tooltipLines=["No errors found in journal"],
+                tooltipLines=[format_status_line(Status.OK, "No errors found in journal")],
             )
 
         details: List[str] = []
-        details.append(f"Journal errors (err..emerg): {count}")
+        details.append(format_status_line(Status.CRITICAL, f"Journal errors (err..emerg): {count}"))
         if recent:
             details.append("")
             details.append("Most recent:")
